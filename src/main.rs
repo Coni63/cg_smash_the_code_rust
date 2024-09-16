@@ -22,6 +22,8 @@ fn main() {
     eprintln!("{:?}", game);
 
     game.play(0, 18);
+    game.play(6, 18);
+    game.play(5, 21);
     game.add_balls(get_piece());
 
     eprintln!("{:?}", game);
