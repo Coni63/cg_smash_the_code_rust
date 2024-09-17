@@ -80,7 +80,10 @@ impl Player {
             _ => panic!("What have you done with positions !"),
         }
 
-        self.process_board();
+        let score = self.process_board();
+
+        self.score += score;
+        self.nuisance += score;
 
         true
     }
@@ -97,17 +100,45 @@ impl Player {
         ans
     }
 
-    fn process_board(&mut self) {
+    fn process_board(&mut self) -> u32 {
+        let mut score = 0u32;
         let mut changed = true;
+        let mut cp = 0;
         while changed {
+            let mut count_group = [0, 0, 0, 0, 0];
+            let mut total = 0u32;
             changed = false;
             let groups = self.find_groups();
             if !groups.is_empty() {
+                let mut gb = 0u32;
+                for group in groups.iter() {
+                    let (row, col) = group.first().unwrap();
+                    let color = self.board[*row][*col] as usize;
+                    count_group[color - 1] += 1;
+                    total += group.len() as u32;
+                    gb += match group.len() {
+                        0..4 => 0,
+                        4..10 => group.len() as u32 - 4,
+                        _ => 8,
+                    }
+                }
+                let cb = match count_group.iter().filter(|&x| *x > 0).count() {
+                    1 => 0,
+                    2 => 2,
+                    3 => 4,
+                    4 => 8,
+                    5 => 16,
+                    _ => 16,
+                };
+                score += (10 * total) * (cp + cb + gb);
                 self.remove_groups(&groups);
                 self.apply_gravity();
                 changed = true;
             }
+            cp = if cp == 0 { 8 } else { cp * 2 };
         }
+
+        score
     }
 
     fn find_groups(&mut self) -> Vec<Vec<(usize, usize)>> {
@@ -206,10 +237,44 @@ mod tests {
             bottom,
         };
 
-        player.process_board();
+        let score = player.process_board();
 
         eprintln!("{:?}", player.board);
 
         assert!(player.board[11][2] == 7);
+        assert!(score == 0 + 320);
+    }
+
+    #[test]
+    fn test_gravity2() {
+        let mut board: [[u8; 6]; 12] = [
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 1, 4, 3, 7, 7],
+            [7, 1, 4, 3, 7, 7],
+            [7, 1, 3, 3, 7, 7],
+            [7, 1, 4, 2, 7, 7],
+            [7, 1, 4, 1, 7, 7],
+        ];
+        let bottom: [usize; 6] = [11, 11, 11, 11, 11, 11];
+        let mut player = Player {
+            board,
+            score: 0,
+            nuisance: 0,
+            bottom,
+        };
+
+        let score = player.process_board();
+
+        eprintln!("{:?}", player.board);
+
+        assert!(player.board[11][2] == 7);
+        eprintln!("{:?}", score);
+        assert!(score == 270 + 320);
     }
 }
