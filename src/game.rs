@@ -24,6 +24,12 @@ impl Game {
         let balls = self.queue.pop_front().unwrap();
         self.me.play(balls, my_action);
         self.opp.play(balls, opp_action);
+
+        let rows_opp = self.me.apply_nuisance();
+        let rows_me = self.opp.apply_nuisance();
+
+        self.me.add_heads(rows_me);
+        self.opp.add_heads(rows_opp);
     }
 
     pub fn add_balls(&mut self, new_balls: u8) {

@@ -24,6 +24,25 @@ impl Player {
         self.nuisance
     }
 
+    pub fn apply_nuisance(&mut self) -> u32 {
+        let rows = self.nuisance / 70;
+        self.nuisance %= 70;
+        rows
+    }
+
+    pub fn add_heads(&mut self, num_rows: u32) -> bool {
+        for col in 0..6 {
+            if self.bottom[col] < num_rows as usize - 1 {
+                return false;
+            }
+            for _ in 0..num_rows {
+                self.board[self.bottom[col]][col] = 0;
+                self.bottom[col] -= 1;
+            }
+        }
+        true
+    }
+
     pub fn play(&mut self, balls: u8, position: u8) -> bool {
         let c1 = balls >> 4;
         let c2 = balls & 0xF;
@@ -229,7 +248,7 @@ mod tests {
             [7, 7, 4, 2, 7, 7],
             [7, 7, 4, 1, 7, 7],
         ];
-        let bottom: [usize; 6] = [11, 11, 11, 11, 11, 11];
+        let bottom: [usize; 6] = [11, 11, 6, 6, 11, 11];
         let mut player = Player {
             board,
             score: 0,
@@ -246,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_gravity2() {
+    fn test_heads() {
         let mut board: [[u8; 6]; 12] = [
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
@@ -261,7 +280,7 @@ mod tests {
             [7, 1, 4, 2, 7, 7],
             [7, 1, 4, 1, 7, 7],
         ];
-        let bottom: [usize; 6] = [11, 11, 11, 11, 11, 11];
+        let bottom: [usize; 6] = [11, 6, 6, 6, 11, 11];
         let mut player = Player {
             board,
             score: 0,
@@ -276,5 +295,41 @@ mod tests {
         assert!(player.board[11][2] == 7);
         eprintln!("{:?}", score);
         assert!(score == 270 + 320);
+    }
+
+    #[test]
+    fn test_head() {
+        let board: [[u8; 6]; 12] = [
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 7, 7, 7, 7, 7],
+            [7, 1, 4, 3, 7, 7],
+            [7, 1, 4, 3, 7, 7],
+            [7, 1, 3, 3, 7, 7],
+            [7, 1, 4, 2, 7, 7],
+            [7, 1, 4, 1, 7, 7],
+        ];
+        let bottom: [usize; 6] = [11, 6, 6, 6, 11, 11];
+        let mut player = Player {
+            board,
+            score: 0,
+            nuisance: 0,
+            bottom,
+        };
+
+        player.add_heads(3);
+
+        eprintln!("{:?}", player.board);
+
+        assert!(player.board[11][0] == 0);
+        assert!(player.board[9][0] == 0);
+        assert!(player.board[6][3] == 0);
+        assert!(player.board[4][3] == 0);
+        assert!(player.board[11][5] == 0);
+        assert!(player.board[9][5] == 0);
     }
 }
