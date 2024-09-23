@@ -5,6 +5,7 @@ use std::{
 
 use crate::player::Player;
 
+#[derive(Clone)]
 pub struct Game {
     me: Player,
     opp: Player,
@@ -34,6 +35,14 @@ impl Game {
 
     pub fn add_balls(&mut self, new_balls: u8) {
         self.queue.push_back(new_balls);
+    }
+
+    pub fn get_me(&self) -> &Player {
+        &self.me
+    }
+
+    pub fn get_opp(&self) -> &Player {
+        &self.opp
     }
 }
 

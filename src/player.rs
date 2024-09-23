@@ -31,10 +31,16 @@ impl Player {
     }
 
     pub fn add_heads(&mut self, num_rows: u32) -> bool {
+        if num_rows == 0 {
+            return true;
+        }
+
         for col in 0..6 {
-            if self.bottom[col] < num_rows as usize - 1 {
+            if self.bottom[col] + 1 < num_rows as usize {
                 return false;
             }
+        }
+        for col in 0..6 {
             for _ in 0..num_rows {
                 self.board[self.bottom[col]][col] = 0;
                 self.bottom[col] -= 1;
