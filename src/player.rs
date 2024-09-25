@@ -32,12 +32,12 @@ impl Player {
 
     pub fn add_heads(&mut self, num_rows: u32) -> bool {
         if num_rows == 0 {
-            return true;
+            return false;
         }
 
         for col in 0..6 {
-            if self.bottom[col] + 1 < num_rows as usize {
-                return false;
+            if self.bottom[col] < num_rows as usize {
+                return true;
             }
         }
         for col in 0..6 {
@@ -46,7 +46,7 @@ impl Player {
                 self.bottom[col] -= 1;
             }
         }
-        true
+        false
     }
 
     pub fn play(&mut self, balls: u8, position: u8) -> bool {
@@ -58,23 +58,33 @@ impl Player {
                 // vertical 1 column
                 let p = position as usize;
                 let y = self.bottom[p];
-                if y < 1 {
+                if y >= 2 {
+                    self.board[y][p] = c2;
+                    self.board[y - 1][p] = c1;
+                    self.bottom[p] -= 2;
+                } else if y == 1 {
+                    self.board[y][p] = c2;
+                    self.board[y - 1][p] = c1;
+                    self.bottom[p] -= 1; // we cannot move the cursor to -1
+                } else {
                     return false;
                 }
-                self.board[y][p] = c2;
-                self.board[y - 1][p] = c1;
-                self.bottom[p] -= 2;
             }
             6..12 => {
                 // vertical 1 column - reversed
                 let p = (position - 6) as usize;
                 let y = self.bottom[p];
-                if y < 1 {
+                if y >= 2 {
+                    self.board[y][p] = c1;
+                    self.board[y - 1][p] = c2;
+                    self.bottom[p] -= 2;
+                } else if y == 1 {
+                    self.board[y][p] = c1;
+                    self.board[y - 1][p] = c2;
+                    self.bottom[p] -= 1; // we cannot move the cursor to -1
+                } else {
                     return false;
                 }
-                self.board[y][p] = c1;
-                self.board[y - 1][p] = c2;
-                self.bottom[p] -= 2;
             }
             12..17 => {
                 // horizontal
@@ -221,7 +231,7 @@ impl Player {
     fn apply_gravity(&mut self) {
         for col in 0..6 {
             let mut write = 11;
-            for read in (0..12).rev() {
+            for read in (1..12).rev() {
                 if self.board[read][col] != 7 {
                     self.board[write][col] = self.board[read][col];
                     if write != read {
@@ -240,19 +250,19 @@ mod tests {
 
     #[test]
     fn test_gravity() {
-        let mut board: [[u8; 6]; 12] = [
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 7, 7, 7, 7],
-            [7, 7, 4, 3, 7, 7],
-            [7, 7, 4, 3, 7, 7],
-            [7, 7, 3, 3, 7, 7],
-            [7, 7, 4, 2, 7, 7],
-            [7, 7, 4, 1, 7, 7],
+        let board: [[u8; 6]; 12] = [
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 7, 7, 7, 3],
+            [7, 7, 7, 7, 7, 2],
+            [7, 7, 4, 3, 7, 2],
+            [7, 7, 4, 3, 7, 2],
+            [7, 7, 3, 3, 7, 2],
+            [7, 7, 4, 2, 7, 2],
+            [7, 7, 4, 1, 7, 2],
         ];
         let bottom: [usize; 6] = [11, 11, 6, 6, 11, 11];
         let mut player = Player {
@@ -267,12 +277,12 @@ mod tests {
         eprintln!("{:?}", player.board);
 
         assert!(player.board[11][2] == 7);
-        assert!(score == 0 + 320);
+        assert!(score == 1070);
     }
 
     #[test]
     fn test_heads() {
-        let mut board: [[u8; 6]; 12] = [
+        let board: [[u8; 6]; 12] = [
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],

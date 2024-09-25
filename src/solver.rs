@@ -14,8 +14,12 @@ pub fn solve(game: &Game) -> [u8; 8] {
         for _ in 0..20 {
             let my_action = rng.gen_range(0..22);
             let opp_action = rng.gen_range(0..22);
-            copy.play(my_action, opp_action);
-            copy.add_balls(get_piece(&mut rng));
+            let game_over = copy.play(my_action, opp_action);
+            if game_over {
+                break;
+            } else {
+                copy.add_balls(get_piece(&mut rng));
+            }
         }
 
         eprintln!(

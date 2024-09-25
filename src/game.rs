@@ -21,16 +21,23 @@ impl Game {
         }
     }
 
-    pub fn play(&mut self, my_action: u8, opp_action: u8) {
+    pub fn play(&mut self, my_action: u8, opp_action: u8) -> bool {
         let balls = self.queue.pop_front().unwrap();
-        self.me.play(balls, my_action);
-        self.opp.play(balls, opp_action);
+        let me_valid = self.me.play(balls, my_action);
+        let opp_valid = self.opp.play(balls, opp_action);
 
-        let rows_opp = self.me.apply_nuisance();
-        let rows_me = self.opp.apply_nuisance();
+        if !me_valid | !opp_valid {
+            return true;
+        }
 
-        self.me.add_heads(rows_me);
-        self.opp.add_heads(rows_opp);
+        let me_over = self.me.add_heads(self.opp.apply_nuisance());
+        let opp_over = self.opp.add_heads(self.me.apply_nuisance());
+
+        if me_over | opp_over {
+            return true;
+        }
+
+        false
     }
 
     pub fn add_balls(&mut self, new_balls: u8) {
