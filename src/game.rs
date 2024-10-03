@@ -3,7 +3,7 @@ use std::{
     fmt::{self, Debug},
 };
 
-use crate::player::Player;
+use crate::{errors::GameError, player::Player};
 
 #[derive(Clone)]
 pub struct Game {
@@ -21,23 +21,52 @@ impl Game {
         }
     }
 
-    pub fn play(&mut self, my_action: u8, opp_action: u8) -> bool {
+    pub fn play(&mut self, my_action: u8, opp_action: u8) -> Result<(), GameError> {
         let balls = self.queue.pop_front().unwrap();
-        let me_valid = self.me.play(balls, my_action);
-        let opp_valid = self.opp.play(balls, opp_action);
 
-        if !me_valid | !opp_valid {
-            return true;
+        let me_result = self.me.play(balls, my_action);
+        let opp_result = self.opp.play(balls, opp_action);
+
+        match (me_result, opp_result) {
+            (Ok(()), Ok(())) => (),
+            (Err(_), Ok(())) => {
+                self.me.reset_score();
+                return Err(GameError::Lose);
+            }
+            (Ok(()), Err(_)) => {
+                self.opp.reset_score();
+                return Err(GameError::Win);
+            }
+            (Err(_), Err(_)) => {
+                if self.me.get_score() > self.opp.get_score() {
+                    return Err(GameError::Win);
+                } else {
+                    return Err(GameError::Lose);
+                }
+            }
         }
 
-        let me_over = self.me.add_heads(self.opp.apply_nuisance());
-        let opp_over = self.opp.add_heads(self.me.apply_nuisance());
+        let me_result = self.me.add_heads(self.opp.apply_nuisance());
+        let opp_result = self.opp.add_heads(self.me.apply_nuisance());
 
-        if me_over | opp_over {
-            return true;
+        match (me_result, opp_result) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(_), Ok(())) => {
+                self.me.reset_score();
+                Err(GameError::Lose)
+            }
+            (Ok(()), Err(_)) => {
+                self.opp.reset_score();
+                Err(GameError::Win)
+            }
+            (Err(_), Err(_)) => {
+                if self.me.get_score() > self.opp.get_score() {
+                    Err(GameError::Win)
+                } else {
+                    Err(GameError::Lose)
+                }
+            }
         }
-
-        false
     }
 
     pub fn add_balls(&mut self, new_balls: u8) {

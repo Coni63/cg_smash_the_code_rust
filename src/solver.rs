@@ -3,7 +3,7 @@
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
-use crate::{game::Game, get_piece};
+use crate::{errors::GameError, game::Game, get_piece};
 
 pub fn solve(game: &Game) -> [u8; 8] {
     let mut rng: StdRng = StdRng::seed_from_u64(222);
@@ -11,14 +11,15 @@ pub fn solve(game: &Game) -> [u8; 8] {
     for _ in 0..1000 {
         let mut copy = game.clone();
 
-        for _ in 0..20 {
+        loop {
             let my_action = rng.gen_range(0..22);
             let opp_action = rng.gen_range(0..22);
-            let game_over = copy.play(my_action, opp_action);
-            if game_over {
-                break;
-            } else {
-                copy.add_balls(get_piece(&mut rng));
+
+            match copy.play(my_action, opp_action) {
+                Ok(()) => copy.add_balls(get_piece(&mut rng)),
+                Err(GameError::Win) => break,
+                Err(GameError::Lose) => break,
+                Err(GameError::BoardIsFull) => panic!("This should not be reached"),
             }
         }
 
@@ -26,7 +27,12 @@ pub fn solve(game: &Game) -> [u8; 8] {
             "{} vs {}",
             copy.get_me().get_score(),
             copy.get_opp().get_score()
-        )
+        );
+
+        if (copy.get_me().get_score() == 0) & (copy.get_opp().get_score() == 0) {
+            eprintln!("{:?}", copy,);
+            break;
+        }
     }
 
     [0; 8]

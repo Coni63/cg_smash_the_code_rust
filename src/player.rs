@@ -1,18 +1,22 @@
+use crate::errors::GameError;
+
 #[derive(Clone)]
 pub struct Player {
-    board: [[u8; 6]; 12],
+    board: [[u8; 6]; 13],
     score: u32,
     nuisance: u32,
     bottom: [usize; 6],
+    // is_game_over: bool,
 }
 
 impl Player {
     pub fn new() -> Self {
         Player {
-            board: [[7; 6]; 12],
+            board: [[7; 6]; 13],
             score: 0,
             nuisance: 0,
-            bottom: [11; 6],
+            bottom: [12; 6],
+            // is_game_over: false,
         }
     }
 
@@ -30,26 +34,24 @@ impl Player {
         rows
     }
 
-    pub fn add_heads(&mut self, num_rows: u32) -> bool {
-        if num_rows == 0 {
-            return false;
-        }
-
-        for col in 0..6 {
-            if self.bottom[col] < num_rows as usize {
-                return true;
-            }
-        }
-        for col in 0..6 {
-            for _ in 0..num_rows {
-                self.board[self.bottom[col]][col] = 0;
-                self.bottom[col] -= 1;
-            }
-        }
-        false
+    pub fn reset_score(&mut self) {
+        self.score = 0;
     }
 
-    pub fn play(&mut self, balls: u8, position: u8) -> bool {
+    pub fn add_heads(&mut self, num_rows: u32) -> Result<(), GameError> {
+        if num_rows == 0 {
+            return Ok(());
+        }
+
+        for col in 0..6 {
+            for _ in 0..num_rows {
+                self.drop(col, 0)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn play(&mut self, balls: u8, position: u8) -> Result<(), GameError> {
         let c1 = balls >> 4;
         let c2 = balls & 0xF;
 
@@ -57,60 +59,26 @@ impl Player {
             0..6 => {
                 // vertical 1 column
                 let p = position as usize;
-                let y = self.bottom[p];
-                if y >= 2 {
-                    self.board[y][p] = c2;
-                    self.board[y - 1][p] = c1;
-                    self.bottom[p] -= 2;
-                } else if y == 1 {
-                    self.board[y][p] = c2;
-                    self.board[y - 1][p] = c1;
-                    self.bottom[p] -= 1; // we cannot move the cursor to -1
-                } else {
-                    return false;
-                }
+                self.drop(p, c1)?;
+                self.drop(p, c2)?;
             }
             6..12 => {
                 // vertical 1 column - reversed
-                let p = (position - 6) as usize;
-                let y = self.bottom[p];
-                if y >= 2 {
-                    self.board[y][p] = c1;
-                    self.board[y - 1][p] = c2;
-                    self.bottom[p] -= 2;
-                } else if y == 1 {
-                    self.board[y][p] = c1;
-                    self.board[y - 1][p] = c2;
-                    self.bottom[p] -= 1; // we cannot move the cursor to -1
-                } else {
-                    return false;
-                }
+                let p = (position - 6) as usize; // 0..6
+                self.drop(p, c2)?;
+                self.drop(p, c1)?;
             }
             12..17 => {
                 // horizontal
-                let p = (position - 12) as usize;
-                let y = self.bottom[p];
-                let y2 = self.bottom[p + 1];
-                if y == 0 || y2 == 0 {
-                    return false;
-                }
-                self.board[y][p] = c1;
-                self.board[y2][p + 1] = c2;
-                self.bottom[p] -= 1;
-                self.bottom[p + 1] -= 1;
+                let p = (position - 12) as usize; // 0..5
+                self.drop(p, c1)?;
+                self.drop(p + 1, c2)?;
             }
             17..22 => {
                 // horizontal
                 let p = (position - 17) as usize;
-                let y = self.bottom[p];
-                let y2 = self.bottom[p + 1];
-                if y == 0 || y2 == 0 {
-                    return false;
-                }
-                self.board[y][p] = c2;
-                self.board[y2][p + 1] = c1;
-                self.bottom[p] -= 1;
-                self.bottom[p + 1] -= 1;
+                self.drop(p, c2)?;
+                self.drop(p + 1, c1)?;
             }
             _ => panic!("What have you done with positions !"),
         }
@@ -120,7 +88,7 @@ impl Player {
         self.score += score;
         self.nuisance += score;
 
-        true
+        Ok(())
     }
 
     pub fn get_row(&self, row: usize) -> String {
@@ -178,9 +146,9 @@ impl Player {
 
     fn find_groups(&mut self) -> Vec<Vec<(usize, usize)>> {
         let mut groups = Vec::new();
-        let mut visited = [[false; 6]; 12];
+        let mut visited = [[false; 6]; 13];
 
-        for row in 0..12 {
+        for row in 0..13 {
             for col in 0..6 {
                 if !visited[row][col] && self.board[row][col] > 0 && self.board[row][col] < 6 {
                     let mut group = Vec::new();
@@ -200,10 +168,10 @@ impl Player {
         row: usize,
         col: usize,
         color: u8,
-        visited: &mut [[bool; 6]; 12],
+        visited: &mut [[bool; 6]; 13],
         group: &mut Vec<(usize, usize)>,
     ) {
-        if row >= 12 || col >= 6 || visited[row][col] || self.board[row][col] != color {
+        if row >= 13 || col >= 6 || visited[row][col] || self.board[row][col] != color {
             return;
         }
 
@@ -230,8 +198,8 @@ impl Player {
 
     fn apply_gravity(&mut self) {
         for col in 0..6 {
-            let mut write = 11;
-            for read in (1..12).rev() {
+            let mut write = 12;
+            for read in (1..13).rev() {
                 if self.board[read][col] != 7 {
                     self.board[write][col] = self.board[read][col];
                     if write != read {
@@ -240,7 +208,17 @@ impl Player {
                     write -= 1;
                 }
             }
+            self.bottom[col] = write;
         }
+    }
+
+    fn drop(&mut self, col: usize, value: u8) -> Result<(), GameError> {
+        if self.bottom[col] > 0 {
+            self.board[self.bottom[col]][col] = value;
+            self.bottom[col] -= 1;
+            return Ok(());
+        }
+        Err(GameError::BoardIsFull)
     }
 }
 
@@ -250,7 +228,8 @@ mod tests {
 
     #[test]
     fn test_gravity() {
-        let board: [[u8; 6]; 12] = [
+        let board: [[u8; 6]; 13] = [
+            [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 2],
             [7, 7, 7, 7, 7, 2],
             [7, 7, 7, 7, 7, 2],
@@ -264,7 +243,7 @@ mod tests {
             [7, 7, 4, 2, 7, 2],
             [7, 7, 4, 1, 7, 2],
         ];
-        let bottom: [usize; 6] = [11, 11, 6, 6, 11, 11];
+        let bottom: [usize; 6] = [12, 12, 7, 7, 12, 12];
         let mut player = Player {
             board,
             score: 0,
@@ -275,14 +254,17 @@ mod tests {
         let score = player.process_board();
 
         eprintln!("{:?}", player.board);
+        eprintln!("{:?}", player.bottom);
 
-        assert!(player.board[11][2] == 7);
+        assert!(player.bottom == [12, 12, 12, 10, 12, 11]);
+        assert!(player.board[12][2] == 7);
         assert!(score == 1070);
     }
 
     #[test]
     fn test_heads() {
-        let board: [[u8; 6]; 12] = [
+        let board: [[u8; 6]; 13] = [
+            [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
@@ -296,7 +278,7 @@ mod tests {
             [7, 1, 4, 2, 7, 7],
             [7, 1, 4, 1, 7, 7],
         ];
-        let bottom: [usize; 6] = [11, 6, 6, 6, 11, 11];
+        let bottom: [usize; 6] = [12, 7, 7, 7, 12, 12];
         let mut player = Player {
             board,
             score: 0,
@@ -308,14 +290,15 @@ mod tests {
 
         eprintln!("{:?}", player.board);
 
-        assert!(player.board[11][2] == 7);
+        assert!(player.board[12][2] == 7);
         eprintln!("{:?}", score);
         assert!(score == 270 + 320);
     }
 
     #[test]
     fn test_head() {
-        let board: [[u8; 6]; 12] = [
+        let board: [[u8; 6]; 13] = [
+            [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
             [7, 7, 7, 7, 7, 7],
@@ -337,7 +320,7 @@ mod tests {
             bottom,
         };
 
-        player.add_heads(3);
+        assert!(player.add_heads(3).is_ok());
 
         eprintln!("{:?}", player.board);
 

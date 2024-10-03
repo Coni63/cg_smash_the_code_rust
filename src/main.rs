@@ -1,3 +1,4 @@
+mod errors;
 mod game;
 mod player;
 mod solver;
