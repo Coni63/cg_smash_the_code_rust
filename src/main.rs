@@ -31,7 +31,7 @@ fn main() {
     // game.play(5, 21);
     // game.add_balls(get_piece(&mut rng));
 
-    solver::solve(&game);
+    let (column, rotation) = solver::solve(&game);
 
-    // eprintln!("{:?}", game);
+    println!("{} {}", column, rotation);
 }
