@@ -30,11 +30,9 @@ impl Game {
         match (me_result, opp_result) {
             (Ok(()), Ok(())) => (),
             (Err(_), Ok(())) => {
-                self.me.reset_score();
                 return Err(GameError::Lose);
             }
             (Ok(()), Err(_)) => {
-                self.opp.reset_score();
                 return Err(GameError::Win);
             }
             (Err(_), Err(_)) => {
@@ -51,14 +49,8 @@ impl Game {
 
         match (me_result, opp_result) {
             (Ok(()), Ok(())) => Ok(()),
-            (Err(_), Ok(())) => {
-                self.me.reset_score();
-                Err(GameError::Lose)
-            }
-            (Ok(()), Err(_)) => {
-                self.opp.reset_score();
-                Err(GameError::Win)
-            }
+            (Err(_), Ok(())) => Err(GameError::Lose),
+            (Ok(()), Err(_)) => Err(GameError::Win),
             (Err(_), Err(_)) => {
                 if self.me.get_score() > self.opp.get_score() {
                     Err(GameError::Win)

@@ -8,15 +8,18 @@ use crate::{errors::GameError, game::Game, get_piece};
 pub fn solve(game: &Game) -> [u8; 8] {
     let mut rng: StdRng = StdRng::seed_from_u64(222);
 
-    for _ in 0..1000 {
+    for _ in 0..100 {
         let mut copy = game.clone();
 
         loop {
             let my_action = rng.gen_range(0..22);
             let opp_action = rng.gen_range(0..22);
 
-            match copy.play(my_action, opp_action) {
-                Ok(()) => copy.add_balls(get_piece(&mut rng)),
+            let state = copy.play(my_action, opp_action);
+            copy.add_balls(get_piece(&mut rng));
+
+            match state {
+                Ok(()) => (),
                 Err(GameError::Win) => break,
                 Err(GameError::Lose) => break,
                 Err(GameError::BoardIsFull) => panic!("This should not be reached"),
@@ -29,9 +32,9 @@ pub fn solve(game: &Game) -> [u8; 8] {
             copy.get_opp().get_score()
         );
 
-        if (copy.get_me().get_score() == 0) & (copy.get_opp().get_score() == 0) {
+        if (copy.get_me().get_score() > 0) || (copy.get_opp().get_score() > 0) {
             eprintln!("{:?}", copy,);
-            break;
+            // break;
         }
     }
 

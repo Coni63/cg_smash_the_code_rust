@@ -34,10 +34,6 @@ impl Player {
         rows
     }
 
-    pub fn reset_score(&mut self) {
-        self.score = 0;
-    }
-
     pub fn add_heads(&mut self, num_rows: u32) -> Result<(), GameError> {
         if num_rows == 0 {
             return Ok(());
